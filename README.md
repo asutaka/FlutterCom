@@ -1,6 +1,5 @@
-# 1. Set up a PageRouteBuilder
-# 2. Create a Tween
-# 3. Add an AnimatedWidget
-# 4. Use a CurveTween
-# 5. Combine the two Tweens
-# Path: https://docs.flutter.dev/cookbook/animation/page-route-animation
+# 1. Create a box to fade in and out.
+# 2. Define a StatefulWidget.
+# 3. Display a button that toggles the visibility.
+# 4. Fade the box in and out.
+# Path: https://docs.flutter.dev/cookbook/animation/opacity-animation
