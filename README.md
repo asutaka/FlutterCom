@@ -1,6 +1,3 @@
-# 1. Set up a PageRouteBuilder
-# 2. Create a Tween
-# 3. Add an AnimatedWidget
-# 4. Use a CurveTween
-# 5. Combine the two Tweens
-# Path: https://docs.flutter.dev/cookbook/animation/page-route-animation
+# 1. Build a GridView with two columns
+# 2. Use an OrientationBuilder to change the number of columns
+# Path: https://docs.flutter.dev/cookbook/design/orientation
