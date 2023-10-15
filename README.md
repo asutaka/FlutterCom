@@ -1,6 +1,4 @@
-# 1. Set up a PageRouteBuilder
-# 2. Create a Tween
-# 3. Add an AnimatedWidget
-# 4. Use a CurveTween
-# 5. Combine the two Tweens
-# Path: https://docs.flutter.dev/cookbook/animation/page-route-animation
+# 1. Create a TabController.
+# 2. Create the tabs.
+# 3. Create content for each tab.
+# Path: https://docs.flutter.dev/cookbook/design/tabs
