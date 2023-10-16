@@ -1,125 +1,372 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const MaterialApp(
+      home: ExampleUiLoadingAnimation(),
+      debugShowCheckedModeBanner: false,
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+const _shimmerGradient = LinearGradient(
+  colors: [
+    Color(0xFFEBEBF4),
+    Color(0xFFF4F4F4),
+    Color(0xFFEBEBF4),
+  ],
+  stops: [
+    0.1,
+    0.3,
+    0.4,
+  ],
+  begin: Alignment(-1.0, -0.3),
+  end: Alignment(1.0, 0.3),
+  tileMode: TileMode.clamp,
+);
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class ExampleUiLoadingAnimation extends StatefulWidget {
+  const ExampleUiLoadingAnimation({
+    super.key,
+  });
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<ExampleUiLoadingAnimation> createState() =>
+      _ExampleUiLoadingAnimationState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _ExampleUiLoadingAnimationState extends State<ExampleUiLoadingAnimation> {
+  bool _isLoading = true;
 
-  void _incrementCounter() {
+  void _toggleLoading() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _isLoading = !_isLoading;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+      body: Shimmer(
+        linearGradient: _shimmerGradient,
+        child: ListView(
+          physics: _isLoading ? const NeverScrollableScrollPhysics() : null,
+          children: [
+            const SizedBox(height: 16),
+            _buildTopRowList(),
+            const SizedBox(height: 16),
+            _buildListItem(),
+            _buildListItem(),
+            _buildListItem(),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        onPressed: _toggleLoading,
+        child: Icon(
+          _isLoading ? Icons.hourglass_full : Icons.hourglass_bottom,
+        ),
+      ),
     );
+  }
+
+  Widget _buildTopRowList() {
+    return SizedBox(
+      height: 72,
+      child: ListView(
+        physics: _isLoading ? const NeverScrollableScrollPhysics() : null,
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        children: [
+          const SizedBox(width: 16),
+          _buildTopRowItem(),
+          _buildTopRowItem(),
+          _buildTopRowItem(),
+          _buildTopRowItem(),
+          _buildTopRowItem(),
+          _buildTopRowItem(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopRowItem() {
+    return ShimmerLoading(
+      isLoading: _isLoading,
+      child: const CircleListItem(),
+    );
+  }
+
+  Widget _buildListItem() {
+    return ShimmerLoading(
+      isLoading: _isLoading,
+      child: CardListItem(
+        isLoading: _isLoading,
+      ),
+    );
+  }
+}
+
+class Shimmer extends StatefulWidget {
+  static ShimmerState? of(BuildContext context) {
+    return context.findAncestorStateOfType<ShimmerState>();
+  }
+
+  const Shimmer({
+    super.key,
+    required this.linearGradient,
+    this.child,
+  });
+
+  final LinearGradient linearGradient;
+  final Widget? child;
+
+  @override
+  ShimmerState createState() => ShimmerState();
+}
+
+class ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _shimmerController = AnimationController.unbounded(vsync: this)
+      ..repeat(min: -0.5, max: 1.5, period: const Duration(milliseconds: 1000));
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+// code-excerpt-closing-bracket
+
+  LinearGradient get gradient => LinearGradient(
+        colors: widget.linearGradient.colors,
+        stops: widget.linearGradient.stops,
+        begin: widget.linearGradient.begin,
+        end: widget.linearGradient.end,
+        transform:
+            _SlidingGradientTransform(slidePercent: _shimmerController.value),
+      );
+
+  bool get isSized => (context.findRenderObject() as RenderBox).hasSize;
+
+  Size get size => (context.findRenderObject() as RenderBox).size;
+
+  Offset getDescendantOffset({
+    required RenderBox descendant,
+    Offset offset = Offset.zero,
+  }) {
+    final shimmerBox = context.findRenderObject() as RenderBox;
+    return descendant.localToGlobal(offset, ancestor: shimmerBox);
+  }
+
+  Listenable get shimmerChanges => _shimmerController;
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child ?? const SizedBox();
+  }
+}
+
+class _SlidingGradientTransform extends GradientTransform {
+  const _SlidingGradientTransform({
+    required this.slidePercent,
+  });
+
+  final double slidePercent;
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
+  }
+}
+
+class ShimmerLoading extends StatefulWidget {
+  const ShimmerLoading({
+    super.key,
+    required this.isLoading,
+    required this.child,
+  });
+
+  final bool isLoading;
+  final Widget child;
+
+  @override
+  State<ShimmerLoading> createState() => _ShimmerLoadingState();
+}
+
+class _ShimmerLoadingState extends State<ShimmerLoading> {
+  Listenable? _shimmerChanges;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_shimmerChanges != null) {
+      _shimmerChanges!.removeListener(_onShimmerChange);
+    }
+    _shimmerChanges = Shimmer.of(context)?.shimmerChanges;
+    if (_shimmerChanges != null) {
+      _shimmerChanges!.addListener(_onShimmerChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    _shimmerChanges?.removeListener(_onShimmerChange);
+    super.dispose();
+  }
+
+  void _onShimmerChange() {
+    if (widget.isLoading) {
+      setState(() {
+        // update the shimmer painting.
+      });
+    }
+  }
+// code-excerpt-closing-bracket
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isLoading) {
+      return widget.child;
+    }
+
+    // Collect ancestor shimmer info.
+    final shimmer = Shimmer.of(context)!;
+    if (!shimmer.isSized) {
+      // The ancestor Shimmer widget has not laid
+      // itself out yet. Return an empty box.
+      return const SizedBox();
+    }
+    final shimmerSize = shimmer.size;
+    final gradient = shimmer.gradient;
+    final offsetWithinShimmer = shimmer.getDescendantOffset(
+      descendant: context.findRenderObject() as RenderBox,
+    );
+
+    return ShaderMask(
+      blendMode: BlendMode.srcATop,
+      shaderCallback: (bounds) {
+        return gradient.createShader(
+          Rect.fromLTWH(
+            -offsetWithinShimmer.dx,
+            -offsetWithinShimmer.dy,
+            shimmerSize.width,
+            shimmerSize.height,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+//----------- List Items ---------
+class CircleListItem extends StatelessWidget {
+  const CircleListItem({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Container(
+        width: 54,
+        height: 54,
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          shape: BoxShape.circle,
+        ),
+        child: ClipOval(
+          child: Image.network(
+            'https://docs.flutter.dev/cookbook'
+            '/img-files/effects/split-check/Avatar1.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CardListItem extends StatelessWidget {
+  const CardListItem({
+    super.key,
+    required this.isLoading,
+  });
+
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildImage(),
+          const SizedBox(height: 16),
+          _buildText(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            'https://docs.flutter.dev/cookbook'
+            '/img-files/effects/split-check/Food1.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildText() {
+    if (isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: 250,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: Text(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do '
+          'eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        ),
+      );
+    }
   }
 }
