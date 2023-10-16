@@ -1,312 +1,413 @@
+import 'dart:math';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(
     const MaterialApp(
-      home: ExampleStaggeredAnimations(),
+      home: ExampleIsTyping(),
       debugShowCheckedModeBanner: false,
     ),
   );
 }
 
-class ExampleStaggeredAnimations extends StatefulWidget {
-  const ExampleStaggeredAnimations({
+const _backgroundColor = Color(0xFF333333);
+
+class ExampleIsTyping extends StatefulWidget {
+  const ExampleIsTyping({
     super.key,
   });
 
   @override
-  State<ExampleStaggeredAnimations> createState() =>
-      _ExampleStaggeredAnimationsState();
+  State<ExampleIsTyping> createState() => _ExampleIsTypingState();
 }
 
-class _ExampleStaggeredAnimationsState extends State<ExampleStaggeredAnimations>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _drawerSlideController;
+class _ExampleIsTypingState extends State<ExampleIsTyping> {
+  bool _isSomeoneTyping = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: const Text('Typing Indicator'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: 25,
+              reverse: true,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 100),
+                  child: FakeMessage(isBig: index.isOdd),
+                );
+              },
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: TypingIndicator(
+              showIndicator: _isSomeoneTyping,
+            ),
+          ),
+          Container(
+            color: Colors.grey,
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: CupertinoSwitch(
+                onChanged: (newValue) {
+                  setState(() {
+                    _isSomeoneTyping = newValue;
+                  });
+                },
+                value: _isSomeoneTyping,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class TypingIndicator extends StatefulWidget {
+  const TypingIndicator({
+    super.key,
+    this.showIndicator = false,
+    this.bubbleColor = const Color(0xFF646b7f),
+    this.flashingCircleDarkColor = const Color(0xFF333333),
+    this.flashingCircleBrightColor = const Color(0xFFaec1dd),
+  });
+
+  final bool showIndicator;
+  final Color bubbleColor;
+  final Color flashingCircleDarkColor;
+  final Color flashingCircleBrightColor;
+
+  @override
+  State<TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<TypingIndicator>
+    with TickerProviderStateMixin {
+  late AnimationController _appearanceController;
+
+  late Animation<double> _indicatorSpaceAnimation;
+
+  late Animation<double> _smallBubbleAnimation;
+  late Animation<double> _mediumBubbleAnimation;
+  late Animation<double> _largeBubbleAnimation;
+
+  late AnimationController _repeatingController;
+  final List<Interval> _dotIntervals = const [
+    Interval(0.25, 0.8),
+    Interval(0.35, 0.9),
+    Interval(0.45, 1.0),
+  ];
 
   @override
   void initState() {
     super.initState();
 
-    _drawerSlideController = AnimationController(
+    _appearanceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+    )..addListener(() {
+        setState(() {});
+      });
+
+    _indicatorSpaceAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      reverseCurve: const Interval(0.0, 1.0, curve: Curves.easeOut),
+    ).drive(Tween<double>(
+      begin: 0.0,
+      end: 60.0,
+    ));
+
+    _smallBubbleAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
+      reverseCurve: const Interval(0.0, 0.3, curve: Curves.easeOut),
     );
-  }
+    _mediumBubbleAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.2, 0.7, curve: Curves.elasticOut),
+      reverseCurve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+    );
+    _largeBubbleAnimation = CurvedAnimation(
+      parent: _appearanceController,
+      curve: const Interval(0.3, 1.0, curve: Curves.elasticOut),
+      reverseCurve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+    );
 
-  @override
-  void dispose() {
-    _drawerSlideController.dispose();
-    super.dispose();
-  }
+    _repeatingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
 
-  bool _isDrawerOpen() {
-    return _drawerSlideController.value == 1.0;
-  }
-
-  bool _isDrawerOpening() {
-    return _drawerSlideController.status == AnimationStatus.forward;
-  }
-
-  bool _isDrawerClosed() {
-    return _drawerSlideController.value == 0.0;
-  }
-
-  void _toggleDrawer() {
-    if (_isDrawerOpen() || _isDrawerOpening()) {
-      _drawerSlideController.reverse();
-    } else {
-      _drawerSlideController.forward();
+    if (widget.showIndicator) {
+      _showIndicator();
     }
   }
 
   @override
+  void didUpdateWidget(TypingIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.showIndicator != oldWidget.showIndicator) {
+      if (widget.showIndicator) {
+        _showIndicator();
+      } else {
+        _hideIndicator();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _appearanceController.dispose();
+    _repeatingController.dispose();
+    super.dispose();
+  }
+
+  void _showIndicator() {
+    _appearanceController
+      ..duration = const Duration(milliseconds: 750)
+      ..forward();
+    _repeatingController.repeat();
+  }
+
+  void _hideIndicator() {
+    _appearanceController
+      ..duration = const Duration(milliseconds: 150)
+      ..reverse();
+    _repeatingController.stop();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
-      body: Stack(
+    return AnimatedBuilder(
+      animation: _indicatorSpaceAnimation,
+      builder: (context, child) {
+        return SizedBox(
+          height: _indicatorSpaceAnimation.value,
+          child: child,
+        );
+      },
+      child: Stack(
         children: [
-          _buildContent(),
-          _buildDrawer(),
+          AnimatedBubble(
+            animation: _smallBubbleAnimation,
+            left: 8,
+            bottom: 8,
+            bubble: CircleBubble(
+              size: 8,
+              bubbleColor: widget.bubbleColor,
+            ),
+          ),
+          AnimatedBubble(
+            animation: _mediumBubbleAnimation,
+            left: 10,
+            bottom: 10,
+            bubble: CircleBubble(
+              size: 16,
+              bubbleColor: widget.bubbleColor,
+            ),
+          ),
+          AnimatedBubble(
+            animation: _largeBubbleAnimation,
+            left: 12,
+            bottom: 12,
+            bubble: StatusBubble(
+              repeatingController: _repeatingController,
+              dotIntervals: _dotIntervals,
+              flashingCircleDarkColor: widget.flashingCircleDarkColor,
+              flashingCircleBrightColor: widget.flashingCircleBrightColor,
+              bubbleColor: widget.bubbleColor,
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      title: const Text(
-        'Flutter Menu',
-        style: TextStyle(
-          color: Colors.black,
-        ),
+class CircleBubble extends StatelessWidget {
+  const CircleBubble({
+    super.key,
+    required this.size,
+    required this.bubbleColor,
+  });
+
+  final double size;
+  final Color bubbleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bubbleColor,
       ),
-      backgroundColor: Colors.transparent,
-      elevation: 0.0,
-      automaticallyImplyLeading: false,
-      actions: [
-        AnimatedBuilder(
-          animation: _drawerSlideController,
-          builder: (context, child) {
-            return IconButton(
-              onPressed: _toggleDrawer,
-              icon: _isDrawerOpen() || _isDrawerOpening()
-                  ? const Icon(
-                      Icons.clear,
-                      color: Colors.black,
-                    )
-                  : const Icon(
-                      Icons.menu,
-                      color: Colors.black,
-                    ),
-            );
-          },
-        ),
-      ],
     );
   }
+}
 
-  Widget _buildContent() {
-    // Put page content here.
-    return const SizedBox();
+class AnimatedBubble extends StatelessWidget {
+  const AnimatedBubble({
+    super.key,
+    required this.animation,
+    required this.left,
+    required this.bottom,
+    required this.bubble,
+  });
+
+  final Animation<double> animation;
+  final double left;
+  final double bottom;
+  final Widget bubble;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: left,
+      bottom: bottom,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: animation.value,
+            alignment: Alignment.bottomLeft,
+            child: child,
+          );
+        },
+        child: bubble,
+      ),
+    );
   }
+}
 
-  Widget _buildDrawer() {
+class StatusBubble extends StatelessWidget {
+  const StatusBubble({
+    super.key,
+    required this.repeatingController,
+    required this.dotIntervals,
+    required this.flashingCircleBrightColor,
+    required this.flashingCircleDarkColor,
+    required this.bubbleColor,
+  });
+
+  final AnimationController repeatingController;
+  final List<Interval> dotIntervals;
+  final Color flashingCircleDarkColor;
+  final Color flashingCircleBrightColor;
+  final Color bubbleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 85,
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(27),
+        color: bubbleColor,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          FlashingCircle(
+            index: 0,
+            repeatingController: repeatingController,
+            dotIntervals: dotIntervals,
+            flashingCircleDarkColor: flashingCircleDarkColor,
+            flashingCircleBrightColor: flashingCircleBrightColor,
+          ),
+          FlashingCircle(
+            index: 1,
+            repeatingController: repeatingController,
+            dotIntervals: dotIntervals,
+            flashingCircleDarkColor: flashingCircleDarkColor,
+            flashingCircleBrightColor: flashingCircleBrightColor,
+          ),
+          FlashingCircle(
+            index: 2,
+            repeatingController: repeatingController,
+            dotIntervals: dotIntervals,
+            flashingCircleDarkColor: flashingCircleDarkColor,
+            flashingCircleBrightColor: flashingCircleBrightColor,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FlashingCircle extends StatelessWidget {
+  const FlashingCircle({
+    super.key,
+    required this.index,
+    required this.repeatingController,
+    required this.dotIntervals,
+    required this.flashingCircleBrightColor,
+    required this.flashingCircleDarkColor,
+  });
+
+  final int index;
+  final AnimationController repeatingController;
+  final List<Interval> dotIntervals;
+  final Color flashingCircleDarkColor;
+  final Color flashingCircleBrightColor;
+
+  @override
+  Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _drawerSlideController,
+      animation: repeatingController,
       builder: (context, child) {
-        return FractionalTranslation(
-          translation: Offset(1.0 - _drawerSlideController.value, 0.0),
-          child: _isDrawerClosed() ? const SizedBox() : const Menu(),
+        final circleFlashPercent = dotIntervals[index].transform(
+          repeatingController.value,
+        );
+        final circleColorPercent = sin(pi * circleFlashPercent);
+
+        return Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color.lerp(
+              flashingCircleDarkColor,
+              flashingCircleBrightColor,
+              circleColorPercent,
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class Menu extends StatefulWidget {
-  const Menu({super.key});
+class FakeMessage extends StatelessWidget {
+  const FakeMessage({
+    super.key,
+    required this.isBig,
+  });
 
-  @override
-  State<Menu> createState() => _MenuState();
-}
-
-class _MenuState extends State<Menu> with SingleTickerProviderStateMixin {
-  static const _menuTitles = [
-    'Declarative style',
-    'Premade widgets',
-    'Stateful hot reload',
-    'Native performance',
-    'Great community',
-  ];
-
-  static const _initialDelayTime = Duration(milliseconds: 50);
-  static const _itemSlideTime = Duration(milliseconds: 250);
-  static const _staggerTime = Duration(milliseconds: 50);
-  static const _buttonDelayTime = Duration(milliseconds: 150);
-  static const _buttonTime = Duration(milliseconds: 500);
-  final _animationDuration = _initialDelayTime +
-      (_staggerTime * _menuTitles.length) +
-      _buttonDelayTime +
-      _buttonTime;
-
-  late AnimationController _staggeredController;
-  final List<Interval> _itemSlideIntervals = [];
-  late Interval _buttonInterval;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _createAnimationIntervals();
-
-    _staggeredController = AnimationController(
-      vsync: this,
-      duration: _animationDuration,
-    )..forward();
-  }
-
-  void _createAnimationIntervals() {
-    for (var i = 0; i < _menuTitles.length; ++i) {
-      final startTime = _initialDelayTime + (_staggerTime * i);
-      final endTime = startTime + _itemSlideTime;
-      _itemSlideIntervals.add(
-        Interval(
-          startTime.inMilliseconds / _animationDuration.inMilliseconds,
-          endTime.inMilliseconds / _animationDuration.inMilliseconds,
-        ),
-      );
-    }
-
-    final buttonStartTime =
-        Duration(milliseconds: (_menuTitles.length * 50)) + _buttonDelayTime;
-    final buttonEndTime = buttonStartTime + _buttonTime;
-    _buttonInterval = Interval(
-      buttonStartTime.inMilliseconds / _animationDuration.inMilliseconds,
-      buttonEndTime.inMilliseconds / _animationDuration.inMilliseconds,
-    );
-  }
-
-  @override
-  void dispose() {
-    _staggeredController.dispose();
-    super.dispose();
-  }
+  final bool isBig;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildFlutterLogo(),
-          _buildContent(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFlutterLogo() {
-    return const Positioned(
-      right: -100,
-      bottom: -30,
-      child: Opacity(
-        opacity: 0.2,
-        child: FlutterLogo(
-          size: 400,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        ..._buildListItems(),
-        const Spacer(),
-        _buildGetStartedButton(),
-      ],
-    );
-  }
-
-  List<Widget> _buildListItems() {
-    final listItems = <Widget>[];
-    for (var i = 0; i < _menuTitles.length; ++i) {
-      listItems.add(
-        AnimatedBuilder(
-          animation: _staggeredController,
-          builder: (context, child) {
-            final animationPercent = Curves.easeOut.transform(
-              _itemSlideIntervals[i].transform(_staggeredController.value),
-            );
-            final opacity = animationPercent;
-            final slideDistance = (1.0 - animationPercent) * 150;
-
-            return Opacity(
-              opacity: opacity,
-              child: Transform.translate(
-                offset: Offset(slideDistance, 0),
-                child: child,
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-            child: Text(
-              _menuTitles[i],
-              textAlign: TextAlign.left,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return listItems;
-  }
-
-  Widget _buildGetStartedButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: AnimatedBuilder(
-          animation: _staggeredController,
-          builder: (context, child) {
-            final animationPercent = Curves.elasticOut.transform(
-                _buttonInterval.transform(_staggeredController.value));
-            final opacity = animationPercent.clamp(0.0, 1.0);
-            final scale = (animationPercent * 0.5) + 0.5;
-
-            return Opacity(
-              opacity: opacity,
-              child: Transform.scale(
-                scale: scale,
-                child: child,
-              ),
-            );
-          },
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              shape: const StadiumBorder(),
-              backgroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
-            ),
-            onPressed: () {},
-            child: const Text(
-              'Get started',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-              ),
-            ),
-          ),
-        ),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+      height: isBig ? 128 : 36,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
+        color: Colors.grey.shade300,
       ),
     );
   }

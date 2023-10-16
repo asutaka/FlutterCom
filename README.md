@@ -1,1 +1,1 @@
-# Path: https://docs.flutter.dev/cookbook/effects/staggered-menu-animation
+# Path: https://docs.flutter.dev/cookbook/effects/typing-indicator
