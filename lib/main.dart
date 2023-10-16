@@ -1,125 +1,406 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const MaterialApp(
+      home: ExampleCupertinoDownloadButton(),
+      debugShowCheckedModeBanner: false,
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+@immutable
+class ExampleCupertinoDownloadButton extends StatefulWidget {
+  const ExampleCupertinoDownloadButton({super.key});
 
-  // This widget is the root of your application.
+  @override
+  State<ExampleCupertinoDownloadButton> createState() =>
+      _ExampleCupertinoDownloadButtonState();
+}
+
+class _ExampleCupertinoDownloadButtonState
+    extends State<ExampleCupertinoDownloadButton> {
+  late final List<DownloadController> _downloadControllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _downloadControllers = List<DownloadController>.generate(
+      20,
+      (index) => SimulatedDownloadController(onOpenDownload: () {
+        _openDownload(index);
+      }),
+    );
+  }
+
+  void _openDownload(int index) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Open App ${index + 1}'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Apps')),
+      body: ListView.separated(
+        itemCount: _downloadControllers.length,
+        separatorBuilder: (_, __) => const Divider(),
+        itemBuilder: _buildListItem,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, int index) {
+    final theme = Theme.of(context);
+    final downloadController = _downloadControllers[index];
+
+    return ListTile(
+      leading: const DemoAppIcon(),
+      title: Text(
+        'App ${index + 1}',
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.titleLarge,
+      ),
+      subtitle: Text(
+        'Lorem ipsum dolor #${index + 1}',
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall,
+      ),
+      trailing: SizedBox(
+        width: 96,
+        child: AnimatedBuilder(
+          animation: downloadController,
+          builder: (context, child) {
+            return DownloadButton(
+              status: downloadController.downloadStatus,
+              downloadProgress: downloadController.progress,
+              onDownload: downloadController.startDownload,
+              onCancel: downloadController.stopDownload,
+              onOpen: downloadController.openDownload,
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+@immutable
+class DemoAppIcon extends StatelessWidget {
+  const DemoAppIcon({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  Widget build(BuildContext context) {
+    return const AspectRatio(
+      aspectRatio: 1,
+      child: FittedBox(
+        child: SizedBox(
+          width: 80,
+          height: 80,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.red, Colors.blue],
+              ),
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.ac_unit,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+enum DownloadStatus {
+  notDownloaded,
+  fetchingDownload,
+  downloading,
+  downloaded,
+}
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+abstract class DownloadController implements ChangeNotifier {
+  DownloadStatus get downloadStatus;
+  double get progress;
+
+  void startDownload();
+  void stopDownload();
+  void openDownload();
+}
+
+class SimulatedDownloadController extends DownloadController
+    with ChangeNotifier {
+  SimulatedDownloadController({
+    DownloadStatus downloadStatus = DownloadStatus.notDownloaded,
+    double progress = 0.0,
+    required VoidCallback onOpenDownload,
+  })  : _downloadStatus = downloadStatus,
+        _progress = progress,
+        _onOpenDownload = onOpenDownload;
+
+  DownloadStatus _downloadStatus;
+  @override
+  DownloadStatus get downloadStatus => _downloadStatus;
+
+  double _progress;
+  @override
+  double get progress => _progress;
+
+  final VoidCallback _onOpenDownload;
+
+  bool _isDownloading = false;
+
+  @override
+  void startDownload() {
+    if (downloadStatus == DownloadStatus.notDownloaded) {
+      _doSimulatedDownload();
+    }
+  }
+
+  @override
+  void stopDownload() {
+    if (_isDownloading) {
+      _isDownloading = false;
+      _downloadStatus = DownloadStatus.notDownloaded;
+      _progress = 0.0;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void openDownload() {
+    if (downloadStatus == DownloadStatus.downloaded) {
+      _onOpenDownload();
+    }
+  }
+
+  Future<void> _doSimulatedDownload() async {
+    _isDownloading = true;
+    _downloadStatus = DownloadStatus.fetchingDownload;
+    notifyListeners();
+
+    // Wait a second to simulate fetch time.
+    await Future<void>.delayed(const Duration(seconds: 1));
+
+    // If the user chose to cancel the download, stop the simulation.
+    if (!_isDownloading) {
+      return;
+    }
+
+    // Shift to the downloading phase.
+    _downloadStatus = DownloadStatus.downloading;
+    notifyListeners();
+
+    const downloadProgressStops = [0.0, 0.15, 0.45, 0.8, 1.0];
+    for (final stop in downloadProgressStops) {
+      // Wait a second to simulate varying download speeds.
+      await Future<void>.delayed(const Duration(seconds: 1));
+
+      // If the user chose to cancel the download, stop the simulation.
+      if (!_isDownloading) {
+        return;
+      }
+
+      // Update the download progress.
+      _progress = stop;
+      notifyListeners();
+    }
+
+    // Wait a second to simulate a final delay.
+    await Future<void>.delayed(const Duration(seconds: 1));
+
+    // If the user chose to cancel the download, stop the simulation.
+    if (!_isDownloading) {
+      return;
+    }
+
+    // Shift to the downloaded state, completing the simulation.
+    _downloadStatus = DownloadStatus.downloaded;
+    _isDownloading = false;
+    notifyListeners();
+  }
+}
+
+@immutable
+class DownloadButton extends StatelessWidget {
+  const DownloadButton({
+    super.key,
+    required this.status,
+    this.downloadProgress = 0.0,
+    required this.onDownload,
+    required this.onCancel,
+    required this.onOpen,
+    this.transitionDuration = const Duration(milliseconds: 500),
+  });
+
+  final DownloadStatus status;
+  final double downloadProgress;
+  final VoidCallback onDownload;
+  final VoidCallback onCancel;
+  final VoidCallback onOpen;
+  final Duration transitionDuration;
+
+  bool get _isDownloading => status == DownloadStatus.downloading;
+
+  bool get _isFetching => status == DownloadStatus.fetchingDownload;
+
+  bool get _isDownloaded => status == DownloadStatus.downloaded;
+
+  void _onPressed() {
+    switch (status) {
+      case DownloadStatus.notDownloaded:
+        onDownload();
+        break;
+      case DownloadStatus.fetchingDownload:
+        // do nothing.
+        break;
+      case DownloadStatus.downloading:
+        onCancel();
+        break;
+      case DownloadStatus.downloaded:
+        onOpen();
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    return GestureDetector(
+      onTap: _onPressed,
+      child: Stack(
+        children: [
+          ButtonShapeWidget(
+            transitionDuration: transitionDuration,
+            isDownloaded: _isDownloaded,
+            isDownloading: _isDownloading,
+            isFetching: _isFetching,
+          ),
+          Positioned.fill(
+            child: AnimatedOpacity(
+              duration: transitionDuration,
+              opacity: _isDownloading || _isFetching ? 1.0 : 0.0,
+              curve: Curves.ease,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ProgressIndicatorWidget(
+                    downloadProgress: downloadProgress,
+                    isDownloading: _isDownloading,
+                    isFetching: _isFetching,
+                  ),
+                  if (_isDownloading)
+                    const Icon(
+                      Icons.stop,
+                      size: 14,
+                      color: CupertinoColors.activeBlue,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+    );
+  }
+}
+
+@immutable
+class ButtonShapeWidget extends StatelessWidget {
+  const ButtonShapeWidget({
+    super.key,
+    required this.isDownloading,
+    required this.isDownloaded,
+    required this.isFetching,
+    required this.transitionDuration,
+  });
+
+  final bool isDownloading;
+  final bool isDownloaded;
+  final bool isFetching;
+  final Duration transitionDuration;
+
+  @override
+  Widget build(BuildContext context) {
+    var shape = const ShapeDecoration(
+      shape: StadiumBorder(),
+      color: CupertinoColors.lightBackgroundGray,
+    );
+
+    if (isDownloading || isFetching) {
+      shape = ShapeDecoration(
+        shape: const CircleBorder(),
+        color: Colors.white.withOpacity(0),
+      );
+    }
+
+    return AnimatedContainer(
+      duration: transitionDuration,
+      curve: Curves.ease,
+      width: double.infinity,
+      decoration: shape,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: AnimatedOpacity(
+          duration: transitionDuration,
+          opacity: isDownloading || isFetching ? 0.0 : 1.0,
+          curve: Curves.ease,
+          child: Text(
+            isDownloaded ? 'OPEN' : 'GET',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: CupertinoColors.activeBlue,
+                ),
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+@immutable
+class ProgressIndicatorWidget extends StatelessWidget {
+  const ProgressIndicatorWidget({
+    super.key,
+    required this.downloadProgress,
+    required this.isDownloading,
+    required this.isFetching,
+  });
+
+  final double downloadProgress;
+  final bool isDownloading;
+  final bool isFetching;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: downloadProgress),
+        duration: const Duration(milliseconds: 200),
+        builder: (context, progress, child) {
+          return CircularProgressIndicator(
+            backgroundColor: isDownloading
+                ? CupertinoColors.lightBackgroundGray
+                : Colors.white.withOpacity(0),
+            valueColor: AlwaysStoppedAnimation(isFetching
+                ? CupertinoColors.lightBackgroundGray
+                : CupertinoColors.activeBlue),
+            strokeWidth: 2,
+            value: isFetching ? null : progress,
+          );
+        },
+      ),
     );
   }
 }
